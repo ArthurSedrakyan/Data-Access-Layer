@@ -1,0 +1,4 @@
+Query
+select FirstName,LastName,EmailPromotion from Person.Person
+where EmailPromotion = 1
+order by LastName

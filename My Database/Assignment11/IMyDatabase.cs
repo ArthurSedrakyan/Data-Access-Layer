@@ -8,6 +8,6 @@ namespace Assignment11
 {
     public interface IMyDatabase<T>
     {
-        IEnumerable<T> GetData(string code, KeyValuePair<string, T> parameters);
+        IEnumerable<T> GetData(string code, KeyValuePair<string, object>[] parameters);
     }
 }

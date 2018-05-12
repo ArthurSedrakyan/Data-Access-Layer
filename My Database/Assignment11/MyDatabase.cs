@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlClient;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -12,7 +14,7 @@ namespace Assignment11
     {
         
 
-        public IEnumerable<T> GetData(string code, KeyValuePair<string, T> parameters)
+        public IEnumerable<T> GetData(string code, KeyValuePair<string, object>[] parameters)
         {
             string connectionString =
                "Data Source=(local);Initial Catalog=AdventureWorks2;"
@@ -20,12 +22,41 @@ namespace Assignment11
 
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
-                SqlCommand command = new SqlCommand(code, connection);
+                SqlDataReader dataReader;
 
-                //try
-                //{
-                    connection.Open();
-                    SqlDataReader dataReader = command.ExecuteReader();
+                string filepath = @"C:\Users\User\Source\Repos\Data-Access-Layer\My Database\query.txt";
+                string[] lines = File.ReadAllLines(filepath);
+
+                StringBuilder stringBuilder = new StringBuilder();
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    stringBuilder.Append(lines[i] + " ");
+                }
+               
+                connection.Open();
+                SqlCommand command = new SqlCommand(stringBuilder.ToString(), connection);
+                
+                if (lines[0].Equals("Procedure"))
+                {
+                    
+                    command.CommandType = CommandType.StoredProcedure;
+                    foreach (KeyValuePair<string, object> item in parameters)
+                    {
+                        var arg = command.Parameters.AddWithValue(item.Key, item.Value);
+                        arg.Direction = ParameterDirection.Input;
+                    }
+                    dataReader = command.ExecuteReader();
+                }
+                else 
+                {
+                    dataReader = command.ExecuteReader();
+                }
+
+                List<T> result = new List<T>();
+
+                try
+                {
+
                     while (dataReader.Read())
                     {
 
@@ -47,27 +78,23 @@ namespace Assignment11
                                 }
                             }
                         }
-                        yield return instance;
-
-                        //int coloumnCount = dataReader.FieldCount;
-                        //Type[] type = new Type[coloumnCount];
-                        //for (int i = 0; i < coloumnCount; i++)
-                        //    type[i] = dataReader.GetFieldType(i);
-
-                        //var yui = new {asd = dataReader[0], };
+                        result.Add(instance);
                     }
-                dataReader.Close();
-                //}
-                //catch (Exception)
-                //{
 
-                //    throw;
-                //}
+                 
+                }
+                catch (InvalidOperationException)
+                {
+                    Console.WriteLine("Cannot open a connection without specifying a data source or server.orThe connection is already open.");
+                    return null;
+                }
+                finally
+                {
+                    dataReader.Close();
+                }
 
-                //return null;
+                return result;
             }
-
-           
         }
     }
 }
